@@ -1,0 +1,68 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "install-dependencies"
+      },
+      "outputs": [],
+      "source": [
+        "!pip install -q diffusers transformers accelerate imageio[ffmpeg] torch\n",
+        "import torch\n",
+        "from diffusers import DiffusionPipeline, DPMSolverMultistepScheduler\n",
+        "from diffusers.utils import export_to_video\n",
+        "from google.colab import files\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "generate-video"
+      },
+      "outputs": [],
+      "source": [
+        "print(\"--> Initializing model weights into GPU...\")\n",
+        "pipe = DiffusionPipeline.from_pretrained(\n",
+        "    \"damo-vilab/text-to-video-ms-1.7b\", \n",
+        "    torch_dtype=torch.float16, \n",
+        "    variant=\"fp16\"\n",
+        ")\n",
+        "pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)\n",
+        "pipe.enable_model_cpu_offload()\n",
+        "pipe.enable_vae_slicing()\n",
+        "\n",
+        "prompt = \"2D hand-drawn Japanese fighting animation style. A stylish, confident young man with dark brown hair, wearing a stylish black oversized sweatshirt and a black bandana/scarf covering the lower half of his face like rapper streetwear, stands looking straight at the camera with a bold, relaxed posture against a plain background. Looking like he's waiting around for someone a girl Suddenly, a bright, bubbly girl with long light brown blue hair wearing a green ong-sleeve top leaps out playfully from behind him, throwing her hands up in the air. The background explodes into a radiant warm neon glow with dynamic spark lines. The masked guy remains cool and collected, his eyes smiling warmly at the camera. Clean line art, pastel streetwear aesthetic, wholesome romantic dynamic.\"\n",
+        "negative_prompt = \"3d, CGI, photorealistic, blurry, low quality, distorted, artifacts\"\n",
+        "\n",
+        "print(\"--> Generating video...\")\n",
+        "result = pipe(\n",
+        "    prompt=prompt,\n",
+        "    negative_prompt=negative_prompt,\n",
+        "    num_inference_steps=35,\n",
+        "    num_frames=16\n",
+        ")\n",
+        "\n",
+        "output_filename = \"anime_romance_scene.mp4\"\n",
+        "export_to_video(result.frames[0], output_filename, fps=8)\n",
+        "print(f\"--> Success! Exported to {output_filename}\")\n",
+        "files.download(output_filename)"
+      ]
+    }
+  ]
+}
